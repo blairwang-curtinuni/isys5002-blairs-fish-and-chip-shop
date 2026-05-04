@@ -3,6 +3,7 @@ LINE_HEIGHT = 5
 LOGO_LOCATION = "fish_chip_logo_nobg_grey.png"
 LOGO_WIDTH = 100
 BARCODE_WIDTH = 40
+RECEIPT_LOCATION = "receipt.pdf"
 
 # Imports
 from datetime import datetime
@@ -12,11 +13,7 @@ import barcode
 from barcode.writer import ImageWriter
 import blairfishchips_text as bfacs_rt
 
-
-barcode_writer_class = barcode.get_barcode_class('code128')
-barcode_writer = barcode_writer_class(bfacs_rt.get_receipt_id(), writer=ImageWriter())
-barcode_writer.save("barcode")
-
+# Wrapper around fpdf2 to easily send through the next line
 def pdf_next_line_wrapper(fpdf_instance, next_line_text, is_centered=True):
     align_instruction='L'
     if (is_centered):
@@ -31,52 +28,61 @@ def pdf_next_line_wrapper(fpdf_instance, next_line_text, is_centered=True):
         new_y=YPos.NEXT
     )
 
-def generate_line(product_name, price_string):
-    len_product = len(product_name)
-    len_price = len(price_string)
-    whitespace_length = bfacs_rt.get_line_width() - (len_product + len_price)
+# Wrapper around barcode writer
+def make_barcode(my_barcode_data):
+    barcode_writer_class = barcode.get_barcode_class('code128')
+    barcode_writer = barcode_writer_class(my_barcode_data, writer=ImageWriter())
+    barcode_writer.save("barcode")
 
-    return product_name + " " * whitespace_length + price_string
-
-pdf = FPDF()
-pdf.add_page()
-pdf.set_font("Courier", size=10)
-
-image_successfully_loaded = False
-image_loading_error = None
-try:
-    # Add text cells
-    pdf.image(LOGO_LOCATION, x=(pdf.w - LOGO_WIDTH)/2 + 5, y=22, w=LOGO_WIDTH)
-    image_successfully_loaded = True
-except FileNotFoundError as e:
-    image_loading_error = e
-
-headertext = bfacs_rt.gen_receipt_header()
-for line in headertext:
-    pdf_next_line_wrapper(pdf, line)
-
-for i in range(0,10):
-    pdf_next_line_wrapper(pdf, "")
-
-bodytext = bfacs_rt.gen_receipt_body()
-for line in bodytext:
-    pdf_next_line_wrapper(pdf, line)
-
-pdf.image("barcode.png", x=(pdf.w - BARCODE_WIDTH)/2 + 5, y=(pdf.h - 50), w=BARCODE_WIDTH)
-
-if (image_successfully_loaded != True):
+def main():
+    # Establish PDF writer with fpdf2
+    pdf = FPDF()
     pdf.add_page()
-    pdf_next_line_wrapper(pdf, "BLAIR'S FISH AND CHIP SHOP")
-    pdf_next_line_wrapper(pdf, "SYSTEM DIAGNOSTIC MESSAGE FOR STAFF")
-    pdf_next_line_wrapper(pdf, "! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !")
-    pdf_next_line_wrapper(pdf, "")
-    pdf_next_line_wrapper(pdf, "SYSTEM ERROR INFORMATION:")
-    pdf_next_line_wrapper(pdf, str(image_loading_error))
-    pdf_next_line_wrapper(pdf, "")
-    pdf_next_line_wrapper(pdf, "POS INFO = " + bfacs_rt.get_pos_info())
-    pdf_next_line_wrapper(pdf, "RECEIPT = " + bfacs_rt.get_receipt_id())
-    pdf_next_line_wrapper(pdf, "")
-    pdf_next_line_wrapper(pdf, "If found, please return to staff for a coupon!")
+    pdf.set_font("Courier", size=10)
 
-pdf.output("receipt.pdf")
+    # Try to generate the image
+    image_successfully_loaded = False
+    image_loading_error = None
+    try:
+        # Add text cells
+        pdf.image(LOGO_LOCATION, x=(pdf.w - LOGO_WIDTH)/2 + 5, y=22, w=LOGO_WIDTH)
+        image_successfully_loaded = True
+    except FileNotFoundError as e:
+        image_loading_error = e
 
+    # Printout header and body, with appropriate spacing in the middle
+    headertext = bfacs_rt.gen_receipt_header()
+    for line in headertext:
+        pdf_next_line_wrapper(pdf, line)
+
+    for i in range(0,10):
+        pdf_next_line_wrapper(pdf, "")
+
+    bodytext = bfacs_rt.gen_receipt_body()
+    for line in bodytext:
+        pdf_next_line_wrapper(pdf, line)
+
+    # Printout barcode
+    make_barcode(bfacs_rt.get_receipt_id())
+    pdf.image("barcode.png", x=(pdf.w - BARCODE_WIDTH)/2 + 5, y=(pdf.h - 50), w=BARCODE_WIDTH)
+
+    # Print diagnostic information on next page if required
+    if (image_successfully_loaded != True):
+        pdf.add_page()
+        pdf_next_line_wrapper(pdf, "BLAIR'S FISH AND CHIP SHOP")
+        pdf_next_line_wrapper(pdf, "SYSTEM DIAGNOSTIC MESSAGE FOR STAFF")
+        pdf_next_line_wrapper(pdf, "! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !")
+        pdf_next_line_wrapper(pdf, "")
+        pdf_next_line_wrapper(pdf, "SYSTEM ERROR INFORMATION:")
+        pdf_next_line_wrapper(pdf, str(image_loading_error))
+        pdf_next_line_wrapper(pdf, "")
+        pdf_next_line_wrapper(pdf, "POS INFO = " + bfacs_rt.get_pos_info())
+        pdf_next_line_wrapper(pdf, "RECEIPT = " + bfacs_rt.get_receipt_id())
+        pdf_next_line_wrapper(pdf, "")
+        pdf_next_line_wrapper(pdf, "If found, please return to staff for a coupon!")
+
+    # We're done here! :)
+    pdf.output(RECEIPT_LOCATION)
+
+if __name__ == "__main__":
+    main()
