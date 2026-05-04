@@ -2,20 +2,25 @@
 POS_TERMINAL = "123A"
 TRANSACTION_ID = "4567/1"
 RECEIPT_ID = "314159265358979"
+MY_TIMEZONE = "Australia/Perth"
 LINE_WIDTH=50
 
 # Imports
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 def get_pos_info():
     pos_info = ""
     pos_info += "POS " + POS_TERMINAL + " "
     pos_info += "TRANS " + TRANSACTION_ID + " "
-    pos_info += str(datetime.now().astimezone().strftime("%c %Z"))
+    pos_info += str(datetime.now().astimezone(ZoneInfo(MY_TIMEZONE)).strftime("%c %Z"))
     return pos_info
 
 def get_receipt_id():
     return RECEIPT_ID
+
+def get_line_width():
+    return LINE_WIDTH
 
 def make_2part_line(product_name, price_string):
     len_product = len(product_name)

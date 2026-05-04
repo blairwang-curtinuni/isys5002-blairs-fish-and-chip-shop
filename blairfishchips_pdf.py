@@ -1,21 +1,20 @@
-from datetime import datetime
+# Settings
+LINE_HEIGHT = 5
+LOGO_LOCATION = "fish_chip_logo_nobg_grey.png"
+LOGO_WIDTH = 100
+BARCODE_WIDTH = 40
 
+# Imports
+from datetime import datetime
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
-
 import barcode
 from barcode.writer import ImageWriter
-
 import blairfishchips_text as bfacs_rt
 
-LINE_HEIGHT=5
-LINE_WIDTH=50
-LOGO_WIDTH=100
-BARCODE_WIDTH=40
 
-receipt_id = "314159265358979"
 barcode_writer_class = barcode.get_barcode_class('code128')
-barcode_writer = barcode_writer_class(receipt_id, writer=ImageWriter())
+barcode_writer = barcode_writer_class(bfacs_rt.get_receipt_id(), writer=ImageWriter())
 barcode_writer.save("barcode")
 
 def pdf_next_line_wrapper(fpdf_instance, next_line_text, is_centered=True):
@@ -35,7 +34,7 @@ def pdf_next_line_wrapper(fpdf_instance, next_line_text, is_centered=True):
 def generate_line(product_name, price_string):
     len_product = len(product_name)
     len_price = len(price_string)
-    whitespace_length = LINE_WIDTH - (len_product + len_price)
+    whitespace_length = bfacs_rt.get_line_width() - (len_product + len_price)
 
     return product_name + " " * whitespace_length + price_string
 
@@ -47,7 +46,7 @@ image_successfully_loaded = False
 image_loading_error = None
 try:
     # Add text cells
-    pdf.image("fish_chip_logo_nobg_grey.png", x=(pdf.w - LOGO_WIDTH)/2 + 5, y=22, w=LOGO_WIDTH)
+    pdf.image(LOGO_LOCATION, x=(pdf.w - LOGO_WIDTH)/2 + 5, y=22, w=LOGO_WIDTH)
     image_successfully_loaded = True
 except FileNotFoundError as e:
     image_loading_error = e
